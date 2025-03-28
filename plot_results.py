@@ -5,7 +5,7 @@ import pickle
 import os
 from datasets.kitti import KITTI
 from datasets.utils import euler_to_rotation
-from datasets.utils import rotation_to_euler
+
 
 def save_trajectory(poses, sequence, save_dir):
     """
@@ -53,7 +53,7 @@ def post_processing(pred_poses, args):
             avg_pose = (q.queue[0][1, :] + q.queue[1][0, :])/2
             poses.append(avg_pose)
 
-            if args["window_size"] == 4:
+            if args["window_size"] == 4:  
                 # implemented for specific case window_size = 4 and overlap = 3
                 avg_pose = (q.queue[0][2, :] + q.queue[1][1, :] + q.queue[2][0, :])/3
                 poses.append(avg_pose)
@@ -64,7 +64,7 @@ def post_processing(pred_poses, args):
                 avg_pose = (q.queue[0][1, :] + q.queue[1][0, :])/2
                 poses.append(avg_pose)
 
-            elif args["window_size"] == 4:
+            elif args["window_size"] == 4:  
                 # implemented for specific case window_size = 4 and overlap = 3
                 avg_pose = (q.queue[0][2, :] + q.queue[1][1, :] + q.queue[2][0, :])/3
                 poses.append(avg_pose)
@@ -97,18 +97,6 @@ def recover_trajectory_and_poses(poses):
     predicted_poses = []
     # recover predicted trajectory
     predicted_trajectory = []
-
-    gt1 = []
-    with open(os.path.join("./26.txt")) as f:
-        lines = f.readlines()
-    # convert poses to float
-    for line_idx, line in enumerate(lines):
-        line = line.strip().split()
-        line = [float(x) for x in line]
-        line_np=np.array(line[:12])
-        gt_angly_np1=line_np.reshape(3,4)
-        gt1.append(gt_angly_np1)
-
     for i in range(len(poses)-1):
         if i == 0:
             T = np.eye(4)
@@ -124,12 +112,12 @@ def recover_trajectory_and_poses(poses):
 
         [x, y, z] = np.multiply(angles, std_angles) + mean_angles
         t = np.multiply(t, std_t) + mean_t
-        R = gt1[i][:3,:3]
-        T_r = np.concatenate((np.concatenate([R, np.reshape(t, (3,1))], axis=1) , [[0.0, 0.0, 0.0, 1.0]] ), axis=0)
+        R = np.asarray(euler_to_rotation(x, y, z, seq = 'zyx'))
 
+        T_r = np.concatenate((np.concatenate([R, np.reshape(t, (3,1))], axis=1) , [[0.0, 0.0, 0.0, 1.0]] ), axis=0)
         T_abs = np.dot(T,T_r)
         T = T_abs
-        T[:3,:3]=gt1[i][:3,:3]
+
         predicted_poses.append(T)
         predicted_trajectory.append(T_abs[:3, 3])
 
@@ -138,9 +126,9 @@ def recover_trajectory_and_poses(poses):
 
 if __name__ == "__main__":
   
-    ckpt_path = "./checkpoints/Exp2kitti0289_2jiao_25,26"
-    ckpt_name = "checkpoint_best"
-    sequences = ["26"]
+    ckpt_path = "checkpoints/Exp1/"
+    ckpt_name = "checkpoint_e80"
+    sequences = ["01", "03", "04", "05", "06", "07", "10"]
 
     # read hyperparameters and configuration
     with open(os.path.join(ckpt_path, "args.pkl"), 'rb') as f:
@@ -169,8 +157,8 @@ if __name__ == "__main__":
 
         plt.figure()
         pred_trajectory = np.asarray(pred_trajectory)
-        plt.plot([x[0] for x in pred_trajectory], [y[1] for y in pred_trajectory], "b")  # plot estimated trajectory
-        plt.plot([x[0] for x in gt_poses.values], [y[1] for y in gt_poses.values], "r")  # plot ground truth trajectory
+        plt.plot([x[0] for x in pred_trajectory], [z[2] for z in pred_trajectory], "b")  # plot estimated trajectory
+        plt.plot([x[0] for x in gt_poses.values], [z[2] for z in gt_poses.values], "r")  # plot ground truth trajectory
         plt.grid()
         plt.title("VO - Seq {}".format(sequence))
         plt.xlabel("Translation in x direction [m]")

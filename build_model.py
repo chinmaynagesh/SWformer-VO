@@ -63,17 +63,11 @@ def build_model(args, model_params):
                               mlp_ratio=4,
                               qkv_bias=True,
                               norm_layer=partial(nn.LayerNorm, eps=1e-6),
-                              drop_rate=0.1,
+                              drop_rate=0.,
                               attn_drop_rate=model_params["attn_dropout"],
                               drop_path_rate=model_params["ff_dropout"],
                               num_frames=model_params["num_frames"],
-                              attention_type=model_params["attention_type"],
-                              in_chans=3,
-                              sw_depth=model_params["sw_depth"],
-                              sw_num_heads=model_params["sw_num_heads"],
-                              sw_windows_size=model_params["sw_windows_size"],
-                              qk_scale=None,
-                              )
+                              attention_type=model_params["attention_type"])
 
     if model_params["time_only"]:
         # for time former without spatial layers

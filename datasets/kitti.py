@@ -20,10 +20,10 @@ class KITTI(torch.utils.data.Dataset):
     """
 
     def __init__(self,
-                 data_path='../TSformer-VO/data/sequences_jpg',
-                 gt_path='../TSformer-VO/data/poses',
-                 camera_id="0",
-                 sequences= ["23","25","26"], # 23 26 31 ["24","25","29","30"],26
+                 data_path=r"data/sequences_jpg",
+                 gt_path=r"data/poses",
+                 camera_id="2",
+                 sequences=["00", "02", "08", "09"],
                  window_size=3,
                  overlap=1,
                  read_poses=True,

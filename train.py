@@ -9,67 +9,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import random_split
 import pickle
 import json
-import numpy as np
 
-import numpy as np
-import torch
-
-
-class EarlyStopping:
-    """Early stops the training if validation loss doesn't improve after a given patience."""
-
-    def __init__(self, patience=7, verbose=False, delta=0):
-        """
-        Args:
-            patience (int): How long to wait after last time validation loss improved.
-                            上次验证集损失值改善后等待几个epoch
-                            Default: 7
-            verbose (bool): If True, prints a message for each validation loss improvement.
-                            如果是True，为每个验证集损失值改善打印一条信息
-                            Default: False
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                            监测数量的最小变化，以符合改进的要求
-                            Default: 0
-        """
-        self.patience = patience
-        self.verbose = verbose
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-        self.val_loss_min = np.Inf
-        self.delta = delta
-
-    def __call__(self, val_loss, model):
-
-        score = -val_loss
-
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            # print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-            self.counter = 0
-
-    def save_checkpoint(self, val_loss, model):
-        '''
-        Saves model when validation loss decrease.
-        验证损失减少时保存模型。
-        '''
-        if self.verbose:
-            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), 'checkpoint.pth')  # 这里会存储迄今最优模型的参数
-        # torch.save(model, 'finish_model.pkl') # 这里会存储迄今最优的模型
-        self.val_loss_min = val_loss
 
 torch.manual_seed(2023)
-patience=100
-early_stopping = EarlyStopping(patience, verbose=True)
+
 
 def val_epoch(model, val_loader, criterion, args):
     epoch_loss = 0
@@ -154,15 +97,12 @@ def train(model, train_loader, val_loader, criterion, optimizer, tensorboard_wri
                 best_val = val_loss
                 state["best_val"] = best_val
                 torch.save(state, os.path.join(checkpoint_path, "checkpoint_best.pth"))
-            early_stopping(val_loss, model)
+
             # log validation loss in TensorBoard
             tensorboard_writer.add_scalar("val_loss", val_loss, epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                # 结束模型训练
-                break
+
         # save checkpoint every 20 epochs
-        if not epoch%10:
+        if not epoch%20:
             torch.save(state, os.path.join(checkpoint_path, "checkpoint_e{}.pth".format(epoch))) 
         # save last checkpoint
         torch.save(state, os.path.join(checkpoint_path, "checkpoint_last.pth"))  
@@ -222,39 +162,36 @@ if __name__ == "__main__":
     # set hyperparameters and configuration
     args = {
         "data_dir": "data",
-        "bsize": 8,  # batch size
+        "bsize": 4,  # batch size
         "val_split": 0.1,  # percentage to use as validation data
         "window_size": 2,  # number of frames in window
         "overlap": 1,  # number of frames overlapped between windows
         "optimizer": "Adam",  # optimizer [Adam, SGD, Adagrad, RAdam]
-        "lr": 1e-4,  # learning rate
+        "lr": 1e-5,  # learning rate
         "momentum": 0.9,  # SGD momentum
         "weight_decay": 1e-4,  # SGD momentum
-        "epoch": 300,  # train iters each timestep
+        "epoch": 100,  # train iters each timestep
     	"weighted_loss": None,  # float to weight angles in loss function
       	"pretrained_ViT": False,  # load weights from pre-trained ViT
-        "checkpoint_path": "checkpoints/Exp2kitti0289_2jiao",  # path to save checkpoint
-        "checkpoint":None,  # checkpoint
+        "checkpoint_path": "checkpoints/Exp4",  # path to save checkpoint
+        "checkpoint": None,  # checkpoint
     }
 
     # tiny  - patch_size=16, embed_dim=192, depth=12, num_heads=3
     # small - patch_size=16, embed_dim=384, depth=12, num_heads=6
     # base  - patch_size=16, embed_dim=768, depth=12, num_heads=12
     model_params = {
-        "dim": 192,
-        "image_size": (224, 678),  #(192, 640),  448 678
-        "patch_size": 7,
+        "dim": 384,
+        "image_size": (192, 640),  #(192, 640),
+        "patch_size": 16,
         "attention_type": 'divided_space_time',  # ['divided_space_time', 'space_only','joint_space_time', 'time_only']
         "num_frames": args["window_size"],
-        "sw_windows_size":8,
         "num_classes": 6 * (args["window_size"] - 1),  # 6 DoF for each frame
-        "depth": 28,
-        "heads": 28,
-        "sw_depth": [12,8,8],
-        "sw_num_heads":[12,12,12],
+        "depth": 12,
+        "heads": 6,
         "dim_head": 64,
-        "attn_dropout": 0.2,
-        "ff_dropout": 0.2,
+        "attn_dropout": 0.1,
+        "ff_dropout": 0.1,
         "time_only": False,
     }
     args["model_params"] = model_params

@@ -9,10 +9,10 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-checkpoint_path = "./checkpoints/Exp2kitti0289_2jiao/"
-checkpoint_name = "checkpoint_best"
-sequences = ["23","24","25","26","29","30","31"]
-#sequences = ["00","01","02","03", "04", "05", "06", "07", "09","08","10"]
+
+checkpoint_path = "checkpoints/Exp3"
+checkpoint_name = "checkpoint_e90"
+sequences = ["01", "03", "04", "05", "06", "07", "10"]
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -43,17 +43,11 @@ model = VisionTransformer(img_size=model_params["image_size"],
                           mlp_ratio=4,
                           qkv_bias=True,
                           norm_layer=partial(nn.LayerNorm, eps=1e-6),
-                          drop_rate=0.1,
-                          attn_drop_rate=model_params["attn_dropout"],
-                          drop_path_rate=model_params["ff_dropout"],
+                          drop_rate=0.,
+                          attn_drop_rate=0.,
+                          drop_path_rate=0.1,
                           num_frames=model_params["num_frames"],
-                          attention_type=model_params["attention_type"],
-                          in_chans=3,
-                          sw_depth=model_params["sw_depth"],
-                          sw_num_heads=model_params["sw_num_heads"],
-                          sw_windows_size=model_params["sw_windows_size"],
-                          qk_scale=None,
-                          )
+                          attention_type=model_params["attention_type"])
 
 checkpoint = torch.load(os.path.join(args["checkpoint_path"], "{}.pth".format(checkpoint_name)),
                         map_location=torch.device(device))
